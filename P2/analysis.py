@@ -200,20 +200,32 @@ def plot_stl(series: pd.Series) -> None:
     plt.close()
     print("fig_stl.png  ✓")
 
-
 def plot_acf_pacf(series: pd.Series) -> None:
-    """Figura — FAC e FACP (original e após diff. sazonal)."""
+    """Figura — FAC e FACP (original e após diff. sazonal).
+
+    O número de lags é calculado automaticamente:
+      - FACP: statsmodels exige nlags < 50% do tamanho da série
+      - FAC:  usa o mesmo limite para consistência visual
+    """
     d_series = series.diff(12).dropna()
 
+    # Número máximo de lags permitido por statsmodels: < len/2
+    # Usamos min(48, floor(n/2) - 1) para ambas as séries
+    max_lags_orig = min(48, len(series) // 2 - 1)
+    max_lags_diff = min(48, len(d_series) // 2 - 1)
+    print(f"  plot_acf_pacf: lags original={max_lags_orig}, "
+          f"lags diff.sazonal={max_lags_diff}")
+
     fig, axes = plt.subplots(2, 2, figsize=(13, 7))
-    plot_acf (series,   lags=48, ax=axes[0, 0],
+    plot_acf (series,   lags=max_lags_orig, ax=axes[0, 0],
               title="FAC — série original")
-    plot_pacf(series,   lags=48, ax=axes[0, 1],
+    plot_pacf(series,   lags=max_lags_orig, ax=axes[0, 1],
               title="FACP — série original", method="ywm")
-    plot_acf (d_series, lags=48, ax=axes[1, 0],
+    plot_acf (d_series, lags=max_lags_diff, ax=axes[1, 0],
               title=r"FAC — após $\nabla_{12}$")
-    plot_pacf(d_series, lags=48, ax=axes[1, 1],
+    plot_pacf(d_series, lags=max_lags_diff, ax=axes[1, 1],
               title=r"FACP — após $\nabla_{12}$", method="ywm")
+
     for ax in axes.flat:
         ax.axhline(0, color="black", linewidth=0.7)
     plt.suptitle("Funções de Autocorrelação — Consumo de Eletricidade",
